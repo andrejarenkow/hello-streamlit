@@ -1,51 +1,44 @@
-# Copyright (c) Streamlit Inc. (2018-2022) Snowflake Inc. (2022)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+import folium
+from selenium import webdriver
+from PIL import Image
+from io import BytesIO
 import streamlit as st
-from streamlit.logger import get_logger
 
-LOGGER = get_logger(__name__)
+# Criar um mapa com o Folium
+m = folium.Map(location=[-30, -55], zoom_start=10)
 
+# Adicionar marcadores, polígonos, etc., conforme necessário
+folium.Marker([-30.05, -55.1], popup='Marker 1').add_to(m)
+folium.Marker([-29.95, -54.9], popup='Marker 2').add_to(m)
+folium.Polygon(locations=[[-30.1, -55.2], [-30.1, -54.8], [-29.9, -54.8], [-29.9, -55.2]], color='blue', fill=True).add_to(m)
 
-def run():
-    st.set_page_config(
-        page_title="Hello",
-        page_icon="👋",
-    )
+# Renderizar o mapa em HTML
+mapa_html = m._repr_html_()
 
-    st.write("# Welcome to Streamlit! 👋")
+# Configurar o webdriver do Selenium
+options = webdriver.ChromeOptions()
+options.add_argument('--headless')  # Executar o Chrome em modo headless (sem janelas visíveis)
+driver = webdriver.Chrome(options=options)
 
-    st.sidebar.success("Select a demo above.")
+# Abrir uma página temporária e renderizar o HTML do mapa usando o webdriver
+driver.get('about:blank')
+driver.execute_script('document.write(\'{}\');'.format(mapa_html))
 
-    st.markdown(
-        """
-        Streamlit is an open-source app framework built specifically for
-        Machine Learning and Data Science projects.
-        **👈 Select a demo from the sidebar** to see some examples
-        of what Streamlit can do!
-        ### Want to learn more?
-        - Check out [streamlit.io](https://streamlit.io)
-        - Jump into our [documentation](https://docs.streamlit.io)
-        - Ask a question in our [community
-          forums](https://discuss.streamlit.io)
-        ### See more complex demos
-        - Use a neural net to [analyze the Udacity Self-driving Car Image
-          Dataset](https://github.com/streamlit/demo-self-driving)
-        - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
-    """
-    )
+# Capturar a tela do navegador
+screenshot_bytes = driver.get_screenshot_as_png()
 
+# Fechar o webdriver
+driver.quit()
 
-if __name__ == "__main__":
-    run()
+# Converter a imagem capturada em um objeto Image do Pillow
+img = Image.open(BytesIO(screenshot_bytes))
+
+# Mostrar a imagem no Streamlit
+st.image(img, caption='Mapa capturado', use_column_width=True)
+
+# Salvar a imagem em um arquivo temporário
+img_path = 'mapa_capturado.png'
+img.save(img_path)
+
+# Exibir o link para o arquivo no Streamlit
+st.markdown(f'Download do mapa capturado: [Download](data:image/png;base64,{base64.b64encode(open(img_path, "rb").read()).decode()})', unsafe_allow_html=True)
